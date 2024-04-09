@@ -1,167 +1,178 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.Json;
-using System.IO;
-using MyGame.Characters;
-using System.Diagnostics;
 
-namespace MyGame.Engine
+class GameEngine
 {
-public class GameEngine
+    private readonly Protagonist player;
+    private readonly World world;
+
+    public GameEngine()
+    {
+        world = new World();
+        player = new Protagonist("Player", 100, 10, 5, World.StartingLocation);
+    }
+
+    public void StartGame()
+    {
+        Console.WriteLine("Welcome to the Text-Based Game!");
+        Console.WriteLine("Let's begin...");
+
+        // Game loop
+        while (true)
+        {
+            DisplayLocation();
+            DisplayOptions();
+
+            string input = Console.ReadLine().Trim().ToLower();
+            ProcessInput(input);
+
+            // Check for game over conditions or other exit conditions
+            if (GameOver())
+            {
+                Console.WriteLine("Game Over!");
+                break;
+            }
+        }
+    }
+
+    private void DisplayLocation()
+    {
+        Console.WriteLine($"Current Location: {player.CurrentLocation.Name}");
+        Console.WriteLine(player.CurrentLocation.Description);
+    }
+
+    private void DisplayOptions()
+    {
+        Console.WriteLine("What would you like to do?");
+        Console.WriteLine("1. Move to another location");
+        Console.WriteLine("2. Interact with NPCs");
+        Console.WriteLine("3. Check inventory");
+        Console.WriteLine("4. Quit game");
+        Console.Write("Enter your choice: ");
+    }
+
+    private void ProcessInput(string input)
+    {
+        switch (input)
+        {
+            case "1":
+                MoveToLocation();
+                break;
+            case "2":
+                InteractWithNPCs();
+                break;
+            case "3":
+                DisplayInventory();
+                break;
+            case "4":
+                Console.WriteLine("Exiting game...");
+                Environment.Exit(0);
+                break;
+            default:
+                Console.WriteLine("Invalid input. Please try again.");
+                break;
+        }
+    }
+
+    private void MoveToLocation()
 {
-    private Protagonist protagonist;
-    private List<AdventureWorld> worlds = new List<AdventureWorld>();
-    private DialogueSystem dialogueSystem = new DialogueSystem();
-
-        public GameEngine(Protagonist protagonist)
+    // Display available locations to move to
+    Console.WriteLine("Available Locations:");
+    List<Location> connectedLocations = player.CurrentLocation.GetConnectedLocations();
+    for (int i = 0; i < connectedLocations.Count; i++)
     {
-        this.protagonist = protagonist;
+        Console.WriteLine($"{i + 1}. {connectedLocations[i].Name}");
     }
 
-        public void SetupWorlds()
+    // Prompt the player to choose a location
+    Console.Write("Enter the number of the location you want to move to: ");
+    if (int.TryParse(Console.ReadLine(), out int choice))
     {
-        //Algebraic Dungeons
-        AdventureWorld algebraicDungeons = new AdventureWorld("Algebraic Dungeons", "A world where math equations guard every path.");
-        algebraicDungeons.AddChallenge(new PencilSwordCombat("A wild equation appears!", 50, 10));
-        algebraicDungeons.AddNPC(new NPC("Math Wizard", "Solve my riddles to pass."));
-        worlds.Add(algebraicDungeons);
-       // Literary Labyrinth
-        AdventureWorld literaryLabyrinth = new AdventureWorld("Literary Labyrinth", "A maze filled with classic literature puzzles.");
-        literaryLabyrinth.AddChallenge(new PuzzleChallenge("Complete the quote: 'It is a truth universally acknowledged, that a single man in possession of a good fortune, must be in want of a ____.'", "wife"));
-        literaryLabyrinth.AddNPC(new NPC("Shakespeare's Ghost", "To be, or not to be, that is the question."));
-        worlds.Add(literaryLabyrinth);
-        // History Dungeon
-        AdventureWorld historyDungeon = new AdventureWorld("History Dungeon", "A world where history questions guard every path.");
-        historyDungeon.AddChallenge(new PuzzleChallenge("Who was the first president of the United States?", "George Washington"));
-        historyDungeon.AddNPC(new NPC("The Time Traveler", "Careful, actions in the past can change the future!"));
-        worlds.Add(historyDungeon);
+        choice--; // Adjust choice to match index
 
-        // Science Fiction World
-        AdventureWorld scienceFictionWorld = new AdventureWorld("Science Fiction World", "A world where science fiction becomes reality.");
-        scienceFictionWorld.AddChallenge(new PencilSwordCombat("An alien with a quantum blade appears!", 70, 15));
-        scienceFictionWorld.AddNPC(new NPC("The Robot", "Does this unit have a soul?"));
-        worlds.Add(scienceFictionWorld);
-    }
-
-
-    public void StartAdventure()
-    {
-        Console.WriteLine("Welcome to the Academy of Enlightened Scholars. Your journey begins amidst a great curse...");
-        // Initial meeting with the Mentor Mage
-        NPC mentorMage = new NPC("Mentor Mage", "The Academy needs your help. The subjects have come alive, each becoming a challenge of its own.");
-        mentorMage.Speak();
-        // The mentor provides the first quest
-        protagonist.AcceptQuest(new Quest("Defeat the Math Monster", "Solve the puzzles of the Algebraic Dungeons."));
-    }
-
-    public void Update()
-    {
-        // This method would be called in a loop to update the game state
-        // Example: Check if the player has entered a new world, encountered an NPC, or found an item
-
-        // Pseudo-code:
-        // if (playerEntersNewWorld) {
-        //     HandleWorldEntry(currentWorld);
-        // }
-
-        // This could also handle time-based events or responses to player actions
-    }
-    public void ProgressStory(Protagonist protagonist)
-    {
-        // As the player completes quests and interacts with the world, the story progresses
-        // This method checks for such conditions and updates the game accordingly
-
-        if (protagonist.ActiveQuests.Any(q => q.Title == "Find the Ancient Book"))
+        // Validate choice
+        if (choice >= 0 && choice < connectedLocations.Count)
         {
-            // Example of triggering a special dialogue upon completing a quest
-            NPC npc = new NPC("The Wise Old Librarian", "Thank you for finding the Ancient Book!");
-            dialogueSystem.StartDialogue(npc, protagonist);
-            protagonist.CompleteQuest("Find the Ancient Book");
-            // Perhaps this unlocks a new world, provides a key item, or grants a special ability
+            Location newLocation = connectedLocations[choice];
+            player.MoveTo(newLocation);
+            Console.WriteLine($"You have moved to {newLocation.Name}.");
+        }
+        else
+        {
+            Console.WriteLine("Invalid choice. Please enter a valid location number.");
         }
     }
-
-    public bool IsGameOver()
+    else
     {
-        // Determine if game over conditions are met
-        // This could be based on the protagonist's health, completion of the main quest, etc.
+        Console.WriteLine("Invalid input. Please enter a valid number.");
+    }
+}
 
-        if (!protagonist.IsAlive())
+
+    private void InteractWithNPCs()
+{
+    // Get NPCs in the current location
+    List<NPC> npcs = player.CurrentLocation.GetNPCs();
+
+    if (npcs.Count == 0)
+    {
+        Console.WriteLine("There are no NPCs to interact with in this location.");
+        return;
+    }
+
+    // Display NPCs available for interaction
+    Console.WriteLine("NPCs in the area:");
+    for (int i = 0; i < npcs.Count; i++)
+    {
+        Console.WriteLine($"{i + 1}. {npcs[i].Name}");
+    }
+
+    // Prompt the player to choose an NPC to interact with
+    Console.Write("Enter the number of the NPC you want to interact with: ");
+    if (int.TryParse(Console.ReadLine(), out int choice))
+    {
+        choice--; // Adjust choice to match index
+
+        // Validate choice
+        if (choice >= 0 && choice < npcs.Count)
         {
-            Console.WriteLine("Alas, your journey has come to an untimely end.");
-            return true;
+            NPC selectedNPC = npcs[choice];
+            selectedNPC.Interact();
         }
-
-        // Example: Check if the main quest has been completed
-        if (protagonist.QuestLog.All(q => q.IsCompleted))
+        else
         {
-            Console.WriteLine("Congratulations! You have mastered all the challenges and restored peace to the Academy.");
-            return true;
+            Console.WriteLine("Invalid choice. Please enter a valid NPC number.");
         }
+    }
+    else
+    {
+        Console.WriteLine("Invalid input. Please enter a valid number.");
+    }
+}
 
+
+    private void DisplayInventory()
+{
+    // Check if the player has any items in their inventory
+    if (player.Inventory.Count == 0)
+    {
+        Console.WriteLine("Your inventory is empty.");
+        return;
+    }
+
+    // Display the items in the player's inventory
+    Console.WriteLine("Inventory:");
+    foreach (var item in player.Inventory)
+    {
+        Console.WriteLine($"{item.Name} - Quantity: {item.Quantity}");
+        // Optionally, you can display additional information about the item
+        // Console.WriteLine($"   Description: {item.Description}");
+    }
+}
+
+
+    private bool GameOver()
+    {
+        // Check conditions for game over
         return false;
     }
-
-    // Additional methods for handling world entry, NPC interactions, and item discoveries could be added here
-    public void SaveGameState(string filePath)
-    {
-        GameState gameState = new GameState
-        {
-            Protagonist = this.protagonist,
-            WorldsState = this.worlds.Select(w => new WorldState(w.Name, w.IsCompleted())).ToList()
-            // Populate the GameState with all other needed information
-        };
-
-        try
-        {
-            string jsonString = JsonSerializer.Serialize(gameState, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(filePath, jsonString);
-            Console.WriteLine("Game saved successfully.");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred while saving the game: {ex.Message}");
-        }
-    }
-
-[Serializable]
-public class GameState
-{
-    public Protagonist Protagonist { get; set; }
-    public List<WorldState> WorldsState { get; set; } = new List<WorldState>();
-
-}
-
-[Serializable]
-public class WorldState
-{
-    public string WorldName { get; set; }
-    public bool IsCompleted { get; set; }
-
-    public WorldState(string name, bool completed)
-    {
-        WorldName = name;
-        IsCompleted = completed;
-    }
-}
-    public Protagonist LoadGameState(string filePath)
-    {
-        try
-        {
-            // Read the JSON string from the file
-            var jsonString = File.ReadAllText(filePath);
-            // Convert the JSON string back to a Protagonist object
-            var protagonist = JsonSerializer.Deserialize<Protagonist>(jsonString);
-            Console.WriteLine("Game loaded successfully.");
-            return protagonist;
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"An error occurred while loading the game: {ex.Message}");
-            return null; // Return null or a new Protagonist as a fallback
-        }
-    }
-
-}
 }
